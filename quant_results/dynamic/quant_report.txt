@@ -1,0 +1,25 @@
+============================================================================
+  VECTOR ESTIMATOR INT8 QUANTIZATION  —  mode=dynamic
+============================================================================
+  Platform : Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43
+  ORT      : 1.26.0   CPU: 14
+  Voices   : M1, M2, M3, F1, F2, F3   steps=8   reps=3
+  VE size  : 256.5 MB -> 65.4 MB  (25%)
+
+  Voice    VE fp32   VE int8  speedup   SNR dB     LSD     maxΔ
+  ------------------------------------------------------------
+  M1        7571.4   11883.9    0.64x    -0.71   1.109   0.6428
+  M2        6567.7    9907.5    0.66x    -1.73   1.211   0.8474
+  M3        5239.5   11166.9    0.47x    -1.13   1.234   0.5298
+  F1        4114.2   34720.0    0.12x    -1.73   1.307   0.6236
+  F2       12202.3    9967.1    1.22x    -1.51   1.312   0.5989
+  F3        6225.9   10751.7    0.58x    -0.35   1.850   0.5373
+  ------------------------------------------------------------
+  Overall VE speedup: 0.47x   (fp32 6987 ms -> int8 14733 ms)
+  Quality: SNR -1.19 ± 0.52 dB   LSD 1.337 ± 0.239
+
+  Interpretation:
+    SNR > 30 dB  = near-transparent;  20-30 = minor;  < 20 = audible.
+    LSD lower is better (0 = identical spectra).
+    Audio saved per voice (fp32 vs int8) for A/B listening.
+============================================================================
