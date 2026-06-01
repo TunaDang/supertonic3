@@ -7,6 +7,8 @@ onnx
 results
 results_v3_sdk/
 benchmark_results/
+quant_results/
+*.data
 
 # Python
 __pycache__
