@@ -82,6 +82,25 @@ entire latent each step and the vocoder decodes the whole latent in one call.
   validity-preserving speedup is reducing the matrix (fewer voices/steps/texts). Throughput
   benchmarking is a separate exercise (see `extended_benchmark.py` parallelism suite).
 
+- **INT8 quantization of the vector estimator.** The VE dominates latency, so it is the
+  obvious quantization target. Results on `CPUExecutionProvider` (Core Ultra 7 265U: AVX2 +
+  AVX-VNNI, no AVX-512):
+  - *Dynamic* INT8 (MatMul-only, per-tensor): **0.47× — slower.** Only the 52 MatMuls quantize;
+    the 86 Convs stay FP32, so you pay fp32↔int8 conversion overhead around the quantized ops
+    without quantizing the bulk of the compute.
+  - *Static* INT8 (QDQ, per-tensor, MinMax calibration — quantizes Convs too): **1.78× faster,
+    but audibly worse.** Confirmed by listening. The VE is an iterative flow-matching ODE
+    (N steps); per-step quantization error **compounds** across the loop into a degraded
+    trajectory. (Per-tensor + MinMax is the crudest config; per-channel + percentile
+    calibration might recover quality, but the fewer-steps lever below makes it unnecessary.)
+  - **Methodology note — waveform metrics are invalid here.** SNR / log-spectral-distance /
+    max-abs-diff between FP32 and a candidate are meaningless for this pipeline: the chaotic
+    ODE produces *valid-but-time-unaligned* waveforms under any perturbation. Two FP32 runs
+    with *different seeds* score SNR −3.07 dB — worse than FP32-vs-INT8 at −2.44 dB. Because
+    both runs are deterministic given the seed, reps can't average the difference away. Judge
+    quality by listening, or by an alignment-free metric (ASR-WER / no-reference MOS), never by
+    sample-aligned signal metrics.
+
 ## Plots produced (`<run_dir>/plots/`)
 
 1. `1_stage_breakdown.png` — stacked per-voice stage bars (error bar = total-ms std).
@@ -89,9 +108,44 @@ entire latent each step and the vocoder decodes the whole latent in one call.
 3. `3_total_time_distributions.png` — per-voice total-time box plots (1 box = N reps).
 4. `4_cross_step_compare.png` — step-count impact per voice.
 
-## Where the real speedup lives (CPU)
+## Recommended setting: 6 denoising steps
 
-1. Fewer denoising steps (8 is already 1.6× faster than 12).
-2. Quantization (INT8/FP16) of the vector estimator.
-3. A GPU execution provider (where IO binding would also start to matter).
-4. `intra_op_num_threads` tuning — see the parallelism suite in `extended_benchmark.py`.
+**Use `total_steps = 6`.** Fewer denoising steps is the cleanest CPU speedup lever — it is
+*lossless precision* (no quantization), degrades gracefully rather than cliffing, and needs no
+new dependencies. The model officially supports 5 (low) to 12 (high), default 8. Listening
+tests found **6 steps perceptually indistinguishable from 12**, while cutting VE latency in
+roughly half. (Quantization was the alternative and was rejected — see above.)
+
+### Measured step-count latency (6 voices × 3 reps, CPUExecutionProvider)
+
+`short_difficult` (~10.2 s audio):
+
+| Steps | VE mean (ms) | End-to-end (ms) | RTF | vs 12 steps |
+|------:|-------------:|----------------:|----:|------------:|
+| 4  | 1863 | 2183 | 0.214 | 3.3× faster |
+| 5  | 2185 | 2515 | 0.247 | 2.9× faster |
+| **6**  | **2767** | **3122** | **0.306** | **2.3× faster** |
+| 8  | 3902 | 4348 | 0.426 | 1.65× faster |
+| 12 | 6677 | 7194 | 0.706 | 1.0× (base) |
+
+`paragraph` (~13.1 s audio):
+
+| Steps | VE mean (ms) | End-to-end (ms) | RTF | vs 12 steps |
+|------:|-------------:|----------------:|----:|------------:|
+| 4  | 2281 | 2744 | 0.210 | 3.2× faster |
+| 5  | 2691 | 3131 | 0.240 | 2.8× faster |
+| **6**  | **3667** | **4195** | **0.321** | **2.1× faster** |
+| 8  | 5242 | 5855 | 0.449 | 1.51× faster |
+| 12 | 8137 | 8837 | 0.677 | 1.0× (base) |
+
+**6 vs 12 steps: ~2.1–2.3× end-to-end** (VE ~2.2–2.4×). **6 vs the default 8: ~1.4×.** At 6
+steps RTF is ~0.31 — about 3× faster than real-time playback. VE latency is ~linear in step
+count plus a fixed per-inference step-0 spike (see plot 2), which is why the ratio is slightly
+below the naive 12/6 = 2×.
+
+## Other speedup levers (CPU)
+
+1. **Fewer denoising steps** — the primary lever (above).
+2. A GPU/NPU execution provider (where INT8, FP16, and IO binding would all start to matter).
+3. `intra_op_num_threads` tuning — see the parallelism suite in `extended_benchmark.py`.
+4. INT8 static quantization — *rejected on CPU* (faster but audibly degraded; see above).
