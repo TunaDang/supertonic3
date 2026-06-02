@@ -42,24 +42,6 @@ function aud(file) {
 }
 
 function renderGallery(m) {
-  // Expression with/without pairs
-  const ex = document.getElementById('exprGallery');
-  if (!m.expression_pairs || !m.expression_pairs.length) {
-    ex.innerHTML = '<p class="note">No expression pairs.</p>';
-  } else {
-    let h = '<table><tr><th>Tag</th><th>Voice</th><th>WITH tag</th><th>WITHOUT tag</th><th>Δ duration</th></tr>';
-    m.expression_pairs.forEach(p => {
-      const delta = p.delta_ms;
-      const color = delta > 120 ? '#81c784' : (delta > 40 ? '#ffb74d' : '#e57373');
-      h += `<tr><td><b>${esc(p.tag)}</b></td><td>${esc(p.voice)}</td>` +
-        `<td>${aud(p.with_file)}<br><small>${fmt(p.with_duration_s,2)}s</small></td>` +
-        `<td>${aud(p.without_file)}<br><small>${fmt(p.without_duration_s,2)}s</small></td>` +
-        `<td style="color:${color}"><b>${delta>=0?'+':''}${fmt(delta)} ms</b></td></tr>`;
-    });
-    h += '</table><p class="note">Δ is how much longer the audio is WITH the tag. Small Δ (tens of ms) ⇒ the tag barely renders; a real sigh/laugh is 300–800 ms. Listen to both to judge.</p>';
-    ex.innerHTML = h;
-  }
-
   // Sample phrases
   const sg = document.getElementById('sampleGallery');
   if (!m.items || !m.items.length) { sg.innerHTML = '<p class="note">No samples.</p>'; return; }

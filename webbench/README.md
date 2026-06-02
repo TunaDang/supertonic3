@@ -17,10 +17,8 @@ Reuses the per-stage instrumentation in [`../step_benchmark.py`](../step_benchma
   flags, and per-voice medians.
 - **A/B Compare** — same text through N configs (e.g. 6-step vs 12-step); shows
   latency side-by-side + **relative WER** (ASR of config A vs ASR of config B).
-- **Gallery** — an on-demand, regenerable set of cached samples (fixed seed). Its
-  headline is the **expression-tag A/B**: each `<sigh>`/`<laugh>`/`<breath>` phrase
-  is synthesized **with** and **without** the tag, side-by-side, with the duration
-  delta — so you can hear and measure how much the tag actually changes the audio.
+- **Gallery** — an on-demand, regenerable set of cached sample phrases (fixed seed)
+  with audio players + WER, browsable without re-synthesizing.
 
 ## Verbalization toggle (num2words)
 
@@ -50,13 +48,18 @@ text) — this cancels the systematic ASR bias. Waveform SNR is deliberately NOT
 metrics are meaningless). ASR latency is always reported **separately** from
 synthesis latency.
 
-## Expression tags (finding)
+## Expression tags (finding — feature removed)
 
-`<sigh>`/`<laugh>`/`<breath>` are **not** stripped by the preprocessor (they pass
-through intact and tokenize as real ids) and they **do** change the audio — but only
-by ~**+170–210 ms** (`<sigh>` +169, `<laugh>` +209, `<breath>` +166; measured, seed 0).
-A natural sigh/laugh is 0.3–0.8 s, so the model renders them very subtly — this is
-model/checkpoint behavior, not a preprocessing bug. The Gallery makes it observable.
+Supertonic advertises inline expression tags (`<laugh>`, `<sigh>`, `<breath>`). We
+verified we use them **correctly**: both the Python and browser reference
+implementations tokenize them as literal characters (no special-token mechanism), and
+the README's angle-bracket syntax is exactly what we feed. But on this ONNX checkpoint
+they are **effectively inaudible** — synthesizing with vs without the tag changes
+duration by only ~170–210 ms (a real sigh/laugh is 0.3–0.8 s), i.e. the model barely
+reacts. This is model/checkpoint behavior, not a usage bug. Because the tags don't
+audibly render, the gallery's expression-tag A/B showcase was **removed**. (The
+`expression` category still exists in the corpus for the Suite as a robustness check on
+literal-tag-text handling.)
 
 ## Run
 
