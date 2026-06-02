@@ -14,6 +14,7 @@ class SynthRequest(BaseModel):
     lang: str = config.DEFAULT_LANG
     run_wer: bool = False
     reference: Optional[str] = None  # absolute-WER target (clean-prose cases)
+    seed: Optional[int] = 0          # fixed => reproducible; null => random take
 
 
 class ConfigSpec(BaseModel):
@@ -27,6 +28,7 @@ class CompareRequest(BaseModel):
     text: str
     lang: str = config.DEFAULT_LANG
     run_wer: bool = True
+    seed: Optional[int] = 0  # shared across configs so only the config differs
     configs: List[ConfigSpec] = Field(..., min_length=2)
 
 
@@ -38,3 +40,4 @@ class BatchRequest(BaseModel):
     lang: str = config.DEFAULT_LANG
     reps: int = 1
     run_wer: bool = True
+    seed: Optional[int] = 0  # fixed => reproducible WER across the suite

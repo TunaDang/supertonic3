@@ -46,7 +46,8 @@ def run_batch(bundle, scorer, job, req):
                 for rep in range(req.reps):
                     job.current = {"case_id": case.id, "voice": voice, "steps": steps, "rep": rep}
                     try:
-                        wav, t = run_one(bundle, case.text, voice, steps, req.speed, req.lang)
+                        wav, t = run_one(bundle, case.text, voice, steps, req.speed,
+                                         req.lang, seed=req.seed)
                     except Exception as e:  # noqa: BLE001
                         failures.append({"case_id": case.id, "voice": voice, "steps": steps,
                                          "rep": rep, "reason": f"exception: {e!r}",

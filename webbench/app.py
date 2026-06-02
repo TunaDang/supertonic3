@@ -103,7 +103,7 @@ async def compare(req: CompareRequest):
         if cfg.voice not in b.voice_styles:
             raise HTTPException(400, f"unknown voice {cfg.voice!r}")
         wav, t = await loop.run_in_executor(
-            None, run_one, b, req.text, cfg.voice, cfg.steps, cfg.speed, req.lang)
+            None, run_one, b, req.text, cfg.voice, cfg.steps, cfg.speed, req.lang, None, req.seed)
         audio_id = b.store_audio(wav)
         entry = stages_dict(t)
         entry["label"] = cfg.label

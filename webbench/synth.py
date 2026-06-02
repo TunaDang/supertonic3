@@ -3,6 +3,8 @@ import os
 import sys
 import threading
 
+import numpy as np
+
 # Global single-flight lock: ONNX sessions are not safe for concurrent .run(),
 # and serialization keeps timings clean. Every synthesis path acquires this.
 SYNTH_LOCK = threading.Lock()
@@ -39,10 +41,18 @@ def stages_dict(t) -> dict:
     }
 
 
-def run_one(bundle, text, voice, steps, speed, lang, on_stage=None):
-    """Run one synthesis; returns (wav, StepTimings). Single-flight."""
+def run_one(bundle, text, voice, steps, speed, lang, on_stage=None, seed=None):
+    """Run one synthesis; returns (wav, StepTimings). Single-flight.
+
+    If seed is not None, the flow-matching noise is seeded so the output (and
+    thus the WER) is reproducible. The only stochastic step in the pipeline is
+    the noisy-latent sampling; seeding the global RNG just before the run (under
+    the lock) makes it deterministic. seed=None keeps the original random "take".
+    """
     style = bundle.voice_style(voice)
     with SYNTH_LOCK:
+        if seed is not None:
+            np.random.seed(seed)
         return run_instrumented(
             bundle.cfgs, bundle.text_processor,
             bundle.dp, bundle.text_enc, bundle.vector_est, bundle.vocoder,

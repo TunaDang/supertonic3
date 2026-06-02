@@ -39,7 +39,8 @@ async function ssePost(url, body, handlers) {
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buf += dec.decode(value, { stream: true });
+    // Normalize CRLF -> LF: sse-starlette uses \r\n, so events end with \r\n\r\n.
+    buf += dec.decode(value, { stream: true }).replace(/\r/g, '');
     let idx;
     while ((idx = buf.indexOf('\n\n')) >= 0) {
       const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);

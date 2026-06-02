@@ -34,7 +34,7 @@ async def synth_event_stream(bundle, scorer_getter, req):
     def worker():
         try:
             wav, t = run_one(bundle, req.text, req.voice, req.steps,
-                             req.speed, req.lang, on_stage=on_stage)
+                             req.speed, req.lang, on_stage=on_stage, seed=req.seed)
             audio_id = bundle.store_audio(wav)
             result = stages_dict(t)
             result["audio_id"] = audio_id

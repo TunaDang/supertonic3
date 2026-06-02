@@ -27,6 +27,7 @@ async function synth() {
   btn.disabled = true; summary.innerHTML = ''; werBox.innerHTML = '';
   stageChart.data.datasets[0].data = new Array(7).fill(0); stageChart.update();
 
+  const randomTake = document.getElementById('random_take').checked;
   const body = {
     text: document.getElementById('text').value,
     voice: document.getElementById('voice').value,
@@ -34,6 +35,8 @@ async function synth() {
     speed: parseFloat(document.getElementById('speed').value),
     lang: 'en',
     run_wer: document.getElementById('run_wer').checked,
+    // fixed seed => reproducible audio + WER; "new take" => random each run
+    seed: randomTake ? null : parseInt(document.getElementById('seed').value) || 0,
   };
   status.textContent = 'Synthesizing…';
 
