@@ -17,7 +17,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import onnxruntime as ort
@@ -118,8 +118,19 @@ def run_instrumented(
     text_label: str,
     speed: float = 1.05,
     verbose: bool = True,
+    on_stage: Optional[Callable[[str, float, dict], None]] = None,
 ) -> tuple:
-    """Returns (wav_trimmed, StepTimings)."""
+    """Returns (wav_trimmed, StepTimings).
+
+    on_stage, if provided, is called synchronously after each timed stage as
+    on_stage(name, elapsed_ms, extra_dict). It is a no-op when None, so all
+    existing callers keep byte-identical behavior. Used by the web tool to
+    stream per-stage timing over SSE.
+    """
+    def _emit(name: str, ms: float, **extra) -> None:
+        if on_stage is not None:
+            on_stage(name, ms, extra)
+
     sample_rate = cfgs["ae"]["sample_rate"]
     base_chunk_size = cfgs["ae"]["base_chunk_size"]
     chunk_compress_factor = cfgs["ttl"]["chunk_compress_factor"]
@@ -132,6 +143,7 @@ def run_instrumented(
     t0 = _tick()
     text_ids, text_mask = text_processor([text], [lang])
     t.preprocess_ms = _tick() - t0
+    _emit("preprocess", t.preprocess_ms, text_ids_shape=list(text_ids.shape))
     if verbose:
         print(f"    [1] Preprocess:          {t.preprocess_ms:7.2f} ms  | text_ids {text_ids.shape}")
 
@@ -143,6 +155,7 @@ def run_instrumented(
     dur_onnx = dur_onnx / speed
     t.duration_predictor_ms = _tick() - t0
     t.audio_duration_s = float(dur_onnx[0])
+    _emit("duration_predictor", t.duration_predictor_ms, audio_duration_s=t.audio_duration_s)
     if verbose:
         print(f"    [2] Duration predictor:  {t.duration_predictor_ms:7.2f} ms  | {t.audio_duration_s:.2f}s audio")
 
@@ -152,6 +165,7 @@ def run_instrumented(
         None, {"text_ids": text_ids, "style_ttl": style.ttl, "text_mask": text_mask}
     )
     t.text_encoder_ms = _tick() - t0
+    _emit("text_encoder", t.text_encoder_ms, text_emb_shape=list(text_emb_onnx.shape))
     if verbose:
         print(f"    [3] Text encoder:        {t.text_encoder_ms:7.2f} ms  | text_emb {text_emb_onnx.shape}")
 
@@ -166,6 +180,7 @@ def run_instrumented(
     latent_mask = get_latent_mask(wav_lengths, base_chunk_size, chunk_compress_factor)
     xt = xt * latent_mask
     t.noisy_latent_ms = _tick() - t0
+    _emit("noisy_latent", t.noisy_latent_ms, latent_shape=list(xt.shape))
     if verbose:
         print(f"    [4] Noisy latent:        {t.noisy_latent_ms:7.2f} ms  | xt {xt.shape}")
 
@@ -190,8 +205,10 @@ def run_instrumented(
         )
         step_ms = _tick() - t0
         t.vector_estimator_per_step_ms.append(step_ms)
+        _emit("ve_step", step_ms, step=step, total=total_step)
         if verbose:
             print(f"         step {step:2d}/{total_step-1}: {step_ms:7.2f} ms")
+    _emit("vector_estimator", t.vector_estimator_total_ms, steps=total_step)
     if verbose:
         print(f"         ── total: {t.vector_estimator_total_ms:7.2f} ms  "
               f"avg/step: {t.vector_estimator_total_ms/total_step:.2f} ms")
@@ -200,6 +217,7 @@ def run_instrumented(
     t0 = _tick()
     wav, *_ = vocoder_ort.run(None, {"latent": xt})
     t.vocoder_ms = _tick() - t0
+    _emit("vocoder", t.vocoder_ms, wav_shape=list(wav.shape))
     if verbose:
         print(f"    [6] Vocoder:             {t.vocoder_ms:7.2f} ms  | wav {wav.shape}")
 
@@ -208,6 +226,7 @@ def run_instrumented(
     trim_samples = int(sample_rate * t.audio_duration_s)
     wav_trimmed = wav[:, :trim_samples]
     t.audio_trim_ms = _tick() - t0
+    _emit("audio_trim", t.audio_trim_ms)
 
     rtf = (t.total_ms / 1000.0) / t.audio_duration_s
     if verbose:

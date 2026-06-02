@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supertonic TTS Benchmark</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Supertonic TTS Benchmark</h1>
+    <nav class="tabs">
+      <button class="tab active" data-tab="interactive">Interactive</button>
+      <button class="tab" data-tab="suite">Suite / Dashboard</button>
+      <button class="tab" data-tab="compare">A/B Compare</button>
+    </nav>
+  </header>
+
+  <!-- ================= INTERACTIVE ================= -->
+  <section id="interactive" class="view active">
+    <div class="controls">
+      <label>Text
+        <textarea id="text" rows="3">The startup secured $5.2M in venture capital, a huge leap from their initial $450K seed round.</textarea>
+      </label>
+      <div class="row">
+        <label>Voice <select id="voice"></select></label>
+        <label>Steps <select id="steps"></select></label>
+        <label>Speed <input id="speed" type="number" step="0.05" min="0.5" max="2.0" value="1.05" /></label>
+        <label class="chk"><input id="run_wer" type="checkbox" /> Run WER (ASR)</label>
+      </div>
+      <div class="row">
+        <button id="generate" class="primary">Synthesize</button>
+        <span id="status" class="status"></span>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="panel">
+        <h3>Per-stage latency (live)</h3>
+        <canvas id="stageChart" height="220"></canvas>
+        <div id="summary" class="summary"></div>
+      </div>
+      <div class="panel">
+        <h3>Audio</h3>
+        <audio id="player" controls></audio>
+        <div id="werBox" class="werbox"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SUITE ================= -->
+  <section id="suite" class="view">
+    <div class="controls">
+      <div class="row wrap" id="catList"></div>
+      <div class="row wrap" id="voiceList"></div>
+      <div class="row wrap" id="stepList"></div>
+      <div class="row">
+        <label>Reps <input id="reps" type="number" min="1" max="10" value="1" /></label>
+        <label class="chk"><input id="suite_wer" type="checkbox" checked /> Run WER</label>
+        <button id="runSuite" class="primary">Run suite</button>
+      </div>
+      <div class="row"><progress id="prog" value="0" max="1" style="width:100%"></progress></div>
+      <div id="suiteStatus" class="status"></div>
+    </div>
+    <div class="results">
+      <div class="panel"><h3>Stage latency (p50/p95/p99, ms)</h3><canvas id="pctChart" height="240"></canvas></div>
+      <div class="panel"><h3>WER by category</h3><canvas id="werChart" height="240"></canvas>
+        <p class="note">Absolute WER only on <b>harvard</b> (clean prose). Other bars are WER-vs-input (informational; confounded by normalization + ASR).</p>
+      </div>
+      <div class="panel wide"><h3>Reading failures</h3><div id="failTable"></div></div>
+      <div class="panel wide"><h3>Per-voice (median)</h3><div id="voiceTable"></div></div>
+    </div>
+  </section>
+
+  <!-- ================= COMPARE ================= -->
+  <section id="compare" class="view">
+    <div class="controls">
+      <label>Text <textarea id="cmpText" rows="2">Why did my $6202.39 vanish? The market crashed today.</textarea></label>
+      <div id="cmpConfigs"></div>
+      <div class="row">
+        <label class="chk"><input id="cmp_wer" type="checkbox" checked /> Relative WER</label>
+        <button id="runCompare" class="primary">Compare</button>
+        <span id="cmpStatus" class="status"></span>
+      </div>
+    </div>
+    <div class="results">
+      <div class="panel wide"><h3>Total latency by config</h3><canvas id="cmpChart" height="220"></canvas></div>
+      <div class="panel wide"><h3>Results</h3><div id="cmpResults"></div></div>
+    </div>
+  </section>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/interactive.js"></script>
+  <script src="/js/suite.js"></script>
+  <script src="/js/compare.js"></script>
+  <script>initInteractive(); initSuite(); initCompare();</script>
+</body>
+</html>

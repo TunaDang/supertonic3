@@ -8,6 +8,7 @@ results
 results_v3_sdk/
 benchmark_results/
 quant_results/
+webbench/runs/
 *.data
 
 # Python
