@@ -66,9 +66,9 @@ function renderGallery(m) {
   m.items.forEach(it => {
     h += `<tr><td>${it.category}</td><td>${it.text}</td><td>${aud(it.file)}</td>` +
       `<td>${fmt(it.duration_s,2)}s</td>` +
-      `<td>${it.wer==null?'–':fmt(it.wer,2)}<br><small>${it.wer_mode||''}</small></td>` +
+      `<td>${it.wer==null?'–':fmt(it.wer,2)}</td>` +
       `<td style="font-style:italic;color:#8b98a5">${it.transcript||'–'}</td></tr>`;
   });
-  h += '</table>';
+  h += '</table><p class="note">WER = ASR transcript vs the input text (after lowercase + punctuation normalization). Meaningful for clean prose; for number/symbol phrases it is confounded by verbalization + ASR — use the Interactive tab\'s "Verbalize numbers" toggle for a fair number there.</p>';
   sg.innerHTML = h;
 }

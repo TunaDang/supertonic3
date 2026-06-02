@@ -63,13 +63,14 @@ def build_gallery(bundle, scorer, job, spec):
         row = {"id": cid, "category": case.category, "text": case.text, "voice": voice,
                "steps": steps, "file": fname, "duration_s": t.audio_duration_s,
                "total_ms": t.total_ms, "peak": peak,
-               "wer": None, "cer": None, "wer_mode": None, "transcript": None}
+               "wer": None, "cer": None, "transcript": None}
         if scorer is not None:
             transcript, _ = scorer.transcribe(wav, bundle.sample_rate)
-            ref = case.reference if case.reference else case.text
-            sc = scorer.score(ref, transcript)
-            row.update(wer=sc["wer"], cer=sc["cer"], transcript=transcript,
-                       wer_mode="absolute" if case.reference else "vs_input")
+            # Uniform: always score ASR vs the input text. For clean prose this
+            # is a true intelligibility WER; for number/symbol cases it is
+            # confounded (use the Interactive Verbalize toggle for a fair number).
+            sc = scorer.score(case.text, transcript)
+            row.update(wer=sc["wer"], cer=sc["cer"], transcript=transcript)
         items.append(row)
         job.done += 1
 
