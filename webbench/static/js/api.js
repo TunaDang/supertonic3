@@ -7,6 +7,9 @@ document.querySelectorAll('.tab').forEach(btn => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
+    // Charts created while their tab was display:none measure 0px and render
+    // wrong; nudge a resize once the tab is visible so they recompute size.
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   });
 });
 

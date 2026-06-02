@@ -14,6 +14,7 @@
       <button class="tab active" data-tab="interactive">Interactive</button>
       <button class="tab" data-tab="suite">Suite / Dashboard</button>
       <button class="tab" data-tab="compare">A/B Compare</button>
+      <button class="tab" data-tab="gallery">Gallery</button>
     </nav>
   </header>
 
@@ -29,6 +30,7 @@
         <label>Speed <input id="speed" type="number" step="0.05" min="0.5" max="2.0" value="1.05" /></label>
         <label>Seed <input id="seed" type="number" value="0" style="max-width:90px" /></label>
         <label class="chk"><input id="random_take" type="checkbox" /> New take each run</label>
+        <label class="chk"><input id="verbalize" type="checkbox" /> Verbalize numbers</label>
         <label class="chk"><input id="run_wer" type="checkbox" /> Run WER (ASR)</label>
       </div>
       <div class="row">
@@ -60,6 +62,7 @@
       <div class="row">
         <label>Reps <input id="reps" type="number" min="1" max="10" value="1" /></label>
         <label class="chk"><input id="suite_wer" type="checkbox" checked /> Run WER</label>
+        <label class="chk"><input id="suite_verbalize" type="checkbox" /> Verbalize numbers</label>
         <button id="runSuite" class="primary">Run suite</button>
       </div>
       <div class="row"><progress id="prog" value="0" max="1" style="width:100%"></progress></div>
@@ -87,8 +90,26 @@
       </div>
     </div>
     <div class="results">
-      <div class="panel wide"><h3>Total latency by config</h3><canvas id="cmpChart" height="220"></canvas></div>
+      <div class="panel"><h3>Total latency by config</h3>
+        <div style="height:220px; max-width:420px"><canvas id="cmpChart"></canvas></div>
+      </div>
       <div class="panel wide"><h3>Results</h3><div id="cmpResults"></div></div>
+    </div>
+  </section>
+
+  <!-- ================= GALLERY ================= -->
+  <section id="gallery" class="view">
+    <div class="controls">
+      <div class="row">
+        <button id="buildGallery" class="primary">Build / rebuild gallery</button>
+        <span id="galleryStatus" class="status"></span>
+      </div>
+      <div class="row"><progress id="galleryProg" value="0" max="1" style="width:100%"></progress></div>
+      <p class="note">Synthesizes a curated phrase set at a fixed seed (regenerable; cached on disk, not committed). Expression-tag phrases are rendered <b>with</b> and <b>without</b> the tag so you can hear — and measure — how much the tag actually changes the audio.</p>
+    </div>
+    <div class="results">
+      <div class="panel wide"><h3>Expression tags — with vs without</h3><div id="exprGallery"></div></div>
+      <div class="panel wide"><h3>Sample phrases</h3><div id="sampleGallery"></div></div>
     </div>
   </section>
 
@@ -97,6 +118,7 @@
   <script src="/js/interactive.js"></script>
   <script src="/js/suite.js"></script>
   <script src="/js/compare.js"></script>
-  <script>initInteractive(); initSuite(); initCompare();</script>
+  <script src="/js/gallery.js"></script>
+  <script>initInteractive(); initSuite(); initCompare(); initGallery();</script>
 </body>
 </html>

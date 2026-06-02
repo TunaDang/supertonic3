@@ -28,6 +28,7 @@ async function synth() {
   stageChart.data.datasets[0].data = new Array(7).fill(0); stageChart.update();
 
   const randomTake = document.getElementById('random_take').checked;
+  const verbalize = document.getElementById('verbalize').checked;
   const body = {
     text: document.getElementById('text').value,
     voice: document.getElementById('voice').value,
@@ -37,6 +38,9 @@ async function synth() {
     run_wer: document.getElementById('run_wer').checked,
     // fixed seed => reproducible audio + WER; "new take" => random each run
     seed: randomTake ? null : parseInt(document.getElementById('seed').value) || 0,
+    // one checkbox drives both: verbalize the synth input AND the WER reference
+    verbalize_input: verbalize,
+    verbalize_ref: verbalize,
   };
   status.textContent = 'Synthesizing…';
 
@@ -57,7 +61,8 @@ async function synth() {
         STAGE_LABELS.forEach(n => { if (d.stages[n] !== undefined) setStage(n, d.stages[n]); });
         document.getElementById('player').src = d.audio_url;
         const silent = d.peak < 0.01 ? ' <b style="color:#e57373">⚠ near-silent</b>' : '';
-        summary.innerHTML = `Total <b>${fmt(d.total_ms)} ms</b> · audio ${fmt(d.audio_duration_s, 2)} s · RTF <b>${fmt(d.rtf, 3)}×</b>${silent}`;
+        const vb = d.verbalized ? `<div class="transcript">spoke: “${d.synth_text}”</div>` : '';
+        summary.innerHTML = `Total <b>${fmt(d.total_ms)} ms</b> · audio ${fmt(d.audio_duration_s, 2)} s · RTF <b>${fmt(d.rtf, 3)}×</b>${silent}${vb}`;
         status.textContent = 'Done';
       },
       wer: d => {

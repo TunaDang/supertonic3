@@ -11,6 +11,7 @@ import numpy as np
 import config
 import corpus as corpus_mod
 from synth import run_one, STAGE_ORDER
+from verbalize import verbalize
 
 
 def _pct(values, p):
@@ -45,8 +46,9 @@ def run_batch(bundle, scorer, job, req):
             for steps in req.steps:
                 for rep in range(req.reps):
                     job.current = {"case_id": case.id, "voice": voice, "steps": steps, "rep": rep}
+                    synth_text = verbalize(case.text) if req.verbalize_input else case.text
                     try:
-                        wav, t = run_one(bundle, case.text, voice, steps, req.speed,
+                        wav, t = run_one(bundle, synth_text, voice, steps, req.speed,
                                          req.lang, seed=req.seed)
                     except Exception as e:  # noqa: BLE001
                         failures.append({"case_id": case.id, "voice": voice, "steps": steps,
@@ -69,12 +71,10 @@ def run_batch(bundle, scorer, job, req):
                     if req.run_wer and scorer is not None and rep == 0:
                         try:
                             transcript, _asr_ms = scorer.transcribe(wav, bundle.sample_rate)
-                            if case.reference:
-                                sc = scorer.score(case.reference, transcript)
-                                row["wer_mode"] = "absolute"
-                            else:
-                                sc = scorer.score(case.text, transcript)
-                                row["wer_mode"] = "vs_input"
+                            ref = case.reference if case.reference else case.text
+                            sc = scorer.score(ref, transcript, number_normalize=req.verbalize_ref)
+                            base = "absolute" if case.reference else "vs_input"
+                            row["wer_mode"] = base + ("_numnorm" if req.verbalize_ref else "")
                             row["wer"] = sc["wer"]
                             row["cer"] = sc["cer"]
                             row["transcript"] = transcript

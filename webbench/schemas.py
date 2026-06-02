@@ -15,6 +15,8 @@ class SynthRequest(BaseModel):
     run_wer: bool = False
     reference: Optional[str] = None  # absolute-WER target (clean-prose cases)
     seed: Optional[int] = 0          # fixed => reproducible; null => random take
+    verbalize_input: bool = False    # pre-verbalize text before synthesis
+    verbalize_ref: bool = False      # verbalize the WER reference before scoring
 
 
 class ConfigSpec(BaseModel):
@@ -22,6 +24,7 @@ class ConfigSpec(BaseModel):
     voice: str = config.DEFAULT_VOICE
     steps: int = config.DEFAULT_STEPS
     speed: float = config.DEFAULT_SPEED
+    verbalize_input: bool = False  # per-config: A/B verbalized vs raw
 
 
 class CompareRequest(BaseModel):
@@ -41,3 +44,5 @@ class BatchRequest(BaseModel):
     reps: int = 1
     run_wer: bool = True
     seed: Optional[int] = 0  # fixed => reproducible WER across the suite
+    verbalize_input: bool = False
+    verbalize_ref: bool = False

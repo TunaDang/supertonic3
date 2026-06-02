@@ -46,6 +46,8 @@ async function runSuite() {
     steps: checkedVals('.st').map(Number),
     reps: parseInt(document.getElementById('reps').value),
     run_wer: document.getElementById('suite_wer').checked,
+    verbalize_input: document.getElementById('suite_verbalize').checked,
+    verbalize_ref: document.getElementById('suite_verbalize').checked,
     speed: 1.05, lang: 'en',
   };
   btn.disabled = true; status.textContent = 'Starting…'; prog.value = 0;

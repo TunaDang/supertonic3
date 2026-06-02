@@ -47,7 +47,11 @@ function makeBarChart(canvasId, label) {
   const ctx = document.getElementById(canvasId);
   return new Chart(ctx, {
     type: 'bar',
-    data: { labels: [], datasets: [{ label: label, data: [], backgroundColor: '#4fc3f7' }] },
-    options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'ms' } } } },
+    data: { labels: [], datasets: [{ label: label, data: [], backgroundColor: '#4fc3f7', barThickness: 48 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: 'ms' } } },
+    },
   });
 }

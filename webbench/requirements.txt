@@ -1,0 +1,9 @@
+# webbench-only deps (on top of the project venv, which already has
+# onnxruntime, numpy, scipy, soundfile, matplotlib).
+fastapi
+uvicorn[standard]
+sse-starlette
+faster-whisper
+jiwer
+num2words
+whisper_normalizer

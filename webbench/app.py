@@ -11,6 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 import config
 import corpus as corpus_mod
 from audio import wav_bytes
+from verbalize import verbalize
 from batch import run_batch
 from jobs import registry
 from models import ModelBundle
@@ -102,12 +103,14 @@ async def compare(req: CompareRequest):
     for cfg in req.configs:
         if cfg.voice not in b.voice_styles:
             raise HTTPException(400, f"unknown voice {cfg.voice!r}")
+        text = verbalize(req.text) if cfg.verbalize_input else req.text
         wav, t = await loop.run_in_executor(
-            None, run_one, b, req.text, cfg.voice, cfg.steps, cfg.speed, req.lang, None, req.seed)
+            None, run_one, b, text, cfg.voice, cfg.steps, cfg.speed, req.lang, None, req.seed)
         audio_id = b.store_audio(wav)
         entry = stages_dict(t)
         entry["label"] = cfg.label
         entry["audio_url"] = f"/api/audio/{audio_id}"
+        entry["synth_text"] = text
         if scorer is not None:
             transcript, asr_ms = await loop.run_in_executor(
                 None, scorer.transcribe, wav, b.sample_rate)
@@ -191,6 +194,44 @@ async def batch_result(job_id: str):
     if job.result is None:
         raise HTTPException(409, f"job not complete (status={job.status})")
     return JSONResponse(job.result)
+
+
+@app.post("/api/gallery/build")
+async def gallery_build(req: dict | None = None):
+    import gallery as gallery_mod
+    b = app.state.bundle
+    spec = req or {}
+    total = gallery_mod.gallery_total(spec)
+    job = registry.create(total, {"gallery": True, **spec})
+    scorer = await get_scorer(app)  # gallery scores WER on samples
+    loop = asyncio.get_running_loop()
+
+    def runner():
+        try:
+            gallery_mod.build_gallery(b, scorer, job, spec)
+        except Exception as e:  # noqa: BLE001
+            job.status = "error"
+            job.error = repr(e)
+
+    loop.run_in_executor(None, runner)
+    return {"job_id": job.id, "total": total}
+
+
+@app.get("/api/gallery")
+async def gallery_manifest():
+    import gallery as gallery_mod
+    return JSONResponse(gallery_mod.load_manifest())
+
+
+@app.get("/api/gallery/audio/{fname}")
+async def gallery_audio(fname: str):
+    import gallery as gallery_mod
+    # sanitize: basename only, must be a .wav inside the gallery dir
+    safe = Path(fname).name
+    path = gallery_mod.GALLERY_DIR / safe
+    if safe.endswith(".wav") and path.exists():
+        return Response(content=path.read_bytes(), media_type="audio/wav")
+    raise HTTPException(404, "gallery audio not found")
 
 
 @app.post("/api/warmup")

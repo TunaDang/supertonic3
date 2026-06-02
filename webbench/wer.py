@@ -24,6 +24,28 @@ def _normalize(s: str) -> str:
     return s
 
 
+_ENG_NORM = None
+
+
+def _english_normalizer():
+    global _ENG_NORM
+    if _ENG_NORM is None:
+        from whisper_normalizer.english import EnglishTextNormalizer
+        _ENG_NORM = EnglishTextNormalizer()
+    return _ENG_NORM
+
+
+def _number_normalize(s: str, expand: bool) -> str:
+    """Canonicalize numbers for fair WER. Whisper outputs digit forms ("$5.2
+    million") while a reference may be words; EnglishTextNormalizer maps BOTH to
+    one canonical string. `expand` first runs the num2words verbalizer so abbrevs
+    the normalizer doesn't know ($5.2M, 30kph) become words it can canonicalize."""
+    if expand:
+        from verbalize import verbalize
+        s = verbalize(s)
+    return _normalize(_english_normalizer()(s or ""))
+
+
 class WhisperScorer:
     def __init__(self, model_size: str = config.WHISPER_MODEL,
                  compute_type: str = config.WHISPER_COMPUTE):
@@ -47,10 +69,19 @@ class WhisperScorer:
         return text, asr_ms
 
     @staticmethod
-    def score(reference: str, hypothesis: str) -> dict:
-        """WER + CER with identical normalization on both sides."""
-        ref = _normalize(reference)
-        hyp = _normalize(hypothesis)
+    def score(reference: str, hypothesis: str, number_normalize: bool = False) -> dict:
+        """WER + CER with identical normalization on both sides.
+
+        number_normalize=True canonicalizes numbers on BOTH sides (verbalize the
+        reference's abbreviations, then EnglishTextNormalizer both) so spoken
+        "five point two million" and Whisper's "$5.2 million" compare as equal.
+        """
+        if number_normalize:
+            ref = _number_normalize(reference, expand=True)
+            hyp = _number_normalize(hypothesis, expand=False)
+        else:
+            ref = _normalize(reference)
+            hyp = _normalize(hypothesis)
         if not ref:
             return {"wer": None, "cer": None}
         try:

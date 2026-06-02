@@ -11,7 +11,8 @@ async function initCompare() {
     div.innerHTML =
       `<input class="label" value="${label}" />
        <select class="cv"></select>
-       <select class="cs"></select>`;
+       <select class="cs"></select>
+       <label class="chk"><input type="checkbox" class="cvb"> verbalize</label>`;
     wrap.appendChild(div);
     const cv = div.querySelector('.cv'); meta.voices.forEach(v => cv.add(new Option(v, v))); cv.value = voice;
     const cs = div.querySelector('.cs'); meta.step_choices.forEach(s => cs.add(new Option(`${s} steps`, s))); cs.value = steps;
@@ -32,6 +33,7 @@ async function runCompare() {
     voice: r.querySelector('.cv').value,
     steps: parseInt(r.querySelector('.cs').value),
     speed: 1.05,
+    verbalize_input: r.querySelector('.cvb').checked,
   }));
   const body = { text: document.getElementById('cmpText').value, lang: 'en',
                  run_wer: document.getElementById('cmp_wer').checked, configs };

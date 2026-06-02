@@ -11,6 +11,7 @@ import numpy as np
 
 import config
 from synth import run_one, stages_dict
+from verbalize import verbalize
 
 _synth_sem = asyncio.Semaphore(config.MAX_CONCURRENT_SYNTH)
 
@@ -31,9 +32,11 @@ async def synth_event_stream(bundle, scorer_getter, req):
         payload = {"type": name, "ms": ms, **extra}
         loop.call_soon_threadsafe(aq.put_nowait, payload)
 
+    synth_text = verbalize(req.text) if req.verbalize_input else req.text
+
     def worker():
         try:
-            wav, t = run_one(bundle, req.text, req.voice, req.steps,
+            wav, t = run_one(bundle, synth_text, req.voice, req.steps,
                              req.speed, req.lang, on_stage=on_stage, seed=req.seed)
             audio_id = bundle.store_audio(wav)
             result = stages_dict(t)
@@ -68,6 +71,8 @@ async def synth_event_stream(bundle, scorer_getter, req):
                     "audio_duration_s": done_result["audio_duration_s"],
                     "rtf": done_result["rtf"],
                     "peak": done_result["peak"],
+                    "synth_text": synth_text,
+                    "verbalized": req.verbalize_input,
                 })
             else:
                 # per-stage (and ve_step) events
@@ -84,14 +89,10 @@ async def synth_event_stream(bundle, scorer_getter, req):
         try:
             transcript, asr_ms = await loop.run_in_executor(
                 None, scorer.transcribe, wav, bundle.sample_rate)
-            if req.reference:  # absolute WER (clean prose)
-                scores = scorer.score(req.reference, transcript)
-                mode = "absolute"
-                reference = req.reference
-            else:  # self-reference: WER of ASR vs the input text (informational)
-                scores = scorer.score(req.text, transcript)
-                mode = "vs_input"
-                reference = req.text
+            reference = req.reference if req.reference else req.text
+            scores = scorer.score(reference, transcript, number_normalize=req.verbalize_ref)
+            base = "absolute" if req.reference else "vs_input"
+            mode = base + ("_numnorm" if req.verbalize_ref else "")
             yield _sse("wer", {
                 "transcript": transcript,
                 "reference": reference,
