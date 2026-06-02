@@ -73,3 +73,10 @@ function sseGet(url, handlers) {
 }
 
 const fmt = (x, d = 1) => (x === null || x === undefined) ? '–' : Number(x).toFixed(d);
+
+// HTML-escape text before injecting into innerHTML (tags like <sigh> would
+// otherwise be parsed as elements and vanish).
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}

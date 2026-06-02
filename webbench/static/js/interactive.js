@@ -61,7 +61,7 @@ async function synth() {
         STAGE_LABELS.forEach(n => { if (d.stages[n] !== undefined) setStage(n, d.stages[n]); });
         document.getElementById('player').src = d.audio_url;
         const silent = d.peak < 0.01 ? ' <b style="color:#e57373">⚠ near-silent</b>' : '';
-        const vb = d.verbalized ? `<div class="transcript">spoke: “${d.synth_text}”</div>` : '';
+        const vb = d.verbalized ? `<div class="transcript">spoke: “${esc(d.synth_text)}”</div>` : '';
         summary.innerHTML = `Total <b>${fmt(d.total_ms)} ms</b> · audio ${fmt(d.audio_duration_s, 2)} s · RTF <b>${fmt(d.rtf, 3)}×</b>${silent}${vb}`;
         status.textContent = 'Done';
       },
@@ -72,7 +72,7 @@ async function synth() {
           `<div><span class="metric">WER <b>${fmt(d.wer, 3)}</b></span>` +
           `<span class="metric">CER <b>${fmt(d.cer, 3)}</b></span>` +
           `<span class="metric" style="color:#8b98a5">ASR ${fmt(d.asr_ms)} ms · ${d.asr_model} · ${modeLbl}</span></div>` +
-          `<div class="transcript">“${d.transcript}”</div>`;
+          `<div class="transcript">“${esc(d.transcript)}”</div>`;
       },
       error: d => { status.textContent = 'Error: ' + d.message; },
       end: () => { btn.disabled = false; },

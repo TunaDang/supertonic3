@@ -48,7 +48,7 @@ async function runCompare() {
     res.results.forEach(r => {
       html += `<tr><td>${r.label}</td><td>${fmt(r.total_ms)}</td><td>${fmt(r.rtf, 3)}</td>` +
         `<td><audio controls src="${r.audio_url}" style="width:160px"></audio></td>` +
-        `<td style="font-style:italic;color:#8b98a5">${r.transcript || '–'}</td></tr>`;
+        `<td style="font-style:italic;color:#8b98a5">${esc(r.transcript) || '–'}</td></tr>`;
     });
     html += '</table>';
     if (res.relative && res.relative.length) {
